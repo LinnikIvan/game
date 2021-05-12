@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 @RestController
@@ -123,6 +124,11 @@ public class PlayerController {
     @PostMapping("/players/{id}")
     public ResponseEntity<Player> updatePlayer(@PathVariable("id") String id, @RequestBody Player requestPlayer) {
         if (invalid(id)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (requestPlayer.getExperience() != null) {
+            if (requestPlayer.getExperience() < 0 || requestPlayer.getExperience() > 10000000) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
         Player responsePlayer = playerService.updatePlayer(Long.valueOf(id), requestPlayer);
         if (responsePlayer == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

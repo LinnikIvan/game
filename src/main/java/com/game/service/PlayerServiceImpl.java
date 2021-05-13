@@ -25,16 +25,12 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     private boolean invalidParameters(Player player) {
-        //Имя персонажа (до 12 знаков включительно)
         if (player.getName().length() < 1 || player.getName().length() > 12) return true;
 
-        //Титул персонажа (до 30 знаков включительно)
         if (player.getTitle().length() > 30) return true;
 
-        //Опыт персонажа. Диапазон значений 0...10_000_000
         if (player.getExperience() < 0 || player.getExperience() > 10_000_000) return true;
 
-        //Дата регистрации. Диапазон значений года 2_000...3_000 включительно
         if (player.getBirthday().getTime() < 0) return true;
         Calendar date = Calendar.getInstance();
         date.setTime(player.getBirthday());
@@ -44,13 +40,8 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     private void setLevelAndExpUntilNextLevel(Player player) {
-        // Перед сохранением персонажа в базу данных (при добавлении нового
-        // или апдейте характеристик существующего) должны высчитываться:
-
-        //    - Текущий уровень персонажа
         player.setLevel(calculateLevel(player));
-        //    - Опыт необходимый для достижения следующего уровня
-        player.setUntilNextLevel(calculateUntilNextLevel(player));
+        player.setUntilNextLevel(calculateExpUntilNextLevel(player));
     }
 
     private int calculateLevel(Player player) {
@@ -58,7 +49,7 @@ public class PlayerServiceImpl implements PlayerService {
         return (int) ((Math.sqrt(2500 + 200 * exp) - 50) / 100);
     }
 
-    private int calculateUntilNextLevel(Player player) {
+    private int calculateExpUntilNextLevel(Player player) {
         int exp = player.getExperience();
         int lvl = calculateLevel(player);
         return 50 * (lvl + 1) * (lvl + 2) - exp;
@@ -76,7 +67,6 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player createPlayer(Player requestPlayer) {
-        // При обновлении или создании игрока игнорируем параметры "id", "level" и "untilNextLevel" из тела запроса
         if (requestPlayer == null
                 || requestPlayer.getName() == null
                 || requestPlayer.getTitle() == null
@@ -89,7 +79,6 @@ public class PlayerServiceImpl implements PlayerService {
 
         if (invalidParameters(requestPlayer)) return null;
 
-        // Если в запросе на создание игрока нет параметра 'banned', то считем, что пришло значение 'false'
         if (requestPlayer.isBanned() == null) requestPlayer.setBanned(false);
 
         setLevelAndExpUntilNextLevel(requestPlayer);
@@ -111,29 +100,15 @@ public class PlayerServiceImpl implements PlayerService {
 
         Player responsePlayer = getPlayer(id);
 
-        if (requestPlayer.getName() != null)
-            responsePlayer.setName(requestPlayer.getName());
-
-        if (requestPlayer.getTitle() != null)
-            responsePlayer.setTitle(requestPlayer.getTitle());
-
-        if (requestPlayer.getRace() != null)
-            responsePlayer.setRace(requestPlayer.getRace());
-
-        if (requestPlayer.getProfession() != null)
-            responsePlayer.setProfession(requestPlayer.getProfession());
-
-        if (requestPlayer.getBirthday() != null)
-            responsePlayer.setBirthday(requestPlayer.getBirthday());
-
-        if (requestPlayer.isBanned() != null)
-            responsePlayer.setBanned(requestPlayer.isBanned());
-
-        if (requestPlayer.getExperience() != null)
-            responsePlayer.setExperience(requestPlayer.getExperience());
+        if (requestPlayer.getName() != null) responsePlayer.setName(requestPlayer.getName());
+        if (requestPlayer.getTitle() != null) responsePlayer.setTitle(requestPlayer.getTitle());
+        if (requestPlayer.getRace() != null) responsePlayer.setRace(requestPlayer.getRace());
+        if (requestPlayer.getProfession() != null) responsePlayer.setProfession(requestPlayer.getProfession());
+        if (requestPlayer.getBirthday() != null) responsePlayer.setBirthday(requestPlayer.getBirthday());
+        if (requestPlayer.isBanned() != null) responsePlayer.setBanned(requestPlayer.isBanned());
+        if (requestPlayer.getExperience() != null) responsePlayer.setExperience(requestPlayer.getExperience());
 
         setLevelAndExpUntilNextLevel(responsePlayer);
-
         return playerRepository.save(responsePlayer);
     }
 

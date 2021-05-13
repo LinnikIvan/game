@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 @RestController
@@ -27,20 +26,8 @@ public class PlayerController {
         this.playerService = playerService;
     }
 
-    private boolean invalid(String id) {
-        // Не валидным считается id, если он:
-        // - не числовой
-        // - не целое число
-        // - не положительное число
-        try {
-            long playerId = Long.parseLong(id);
-            if (playerId <= 0) {
-                return true;
-            }
-        } catch (NumberFormatException e) {
-            return true;
-        }
-        return false;
+    private boolean invalid(Long id) {
+        return id <= 0;
     }
 
     @GetMapping("/players")
@@ -100,8 +87,7 @@ public class PlayerController {
                         .and(playerService.birthdayFilter(after, before))
                         .and(playerService.bannedFilter(banned))
                         .and(playerService.experienceFilter(minExperience, maxExperience))
-                        .and(playerService.levelFilter(minLevel, maxLevel))
-        ).size();
+                        .and(playerService.levelFilter(minLevel, maxLevel))).size();
     }
 
     @PostMapping("/players")
@@ -113,34 +99,35 @@ public class PlayerController {
     }
 
     @GetMapping("/players/{id}")
-    public ResponseEntity<Player> getPlayer(@PathVariable(name = "id") String id) {
+    public ResponseEntity<Player> getPlayer(@PathVariable(name = "id") Long id) {
         if (invalid(id)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        Player player = playerService.getPlayer(Long.valueOf(id));
+        Player player = playerService.getPlayer(id);
         if (player == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } else return new ResponseEntity<>(player, HttpStatus.OK);
     }
 
     @PostMapping("/players/{id}")
-    public ResponseEntity<Player> updatePlayer(@PathVariable("id") String id, @RequestBody Player requestPlayer) {
-        if (invalid(id)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        if (requestPlayer.getExperience() != null) {
-            if (requestPlayer.getExperience() < 0 || requestPlayer.getExperience() > 10000000) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-        }
-        Player responsePlayer = playerService.updatePlayer(Long.valueOf(id), requestPlayer);
+    public ResponseEntity<Player> updatePlayer(@PathVariable("id") Long id, @RequestBody Player requestPlayer) {
+        if (invalid(id) || invalidParameters(requestPlayer)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        Player responsePlayer = playerService.updatePlayer(id, requestPlayer);
         if (responsePlayer == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } else return new ResponseEntity<>(responsePlayer, HttpStatus.OK);
     }
 
     @DeleteMapping("/players/{id}")
-    public ResponseEntity<?> deletePlayer(@PathVariable("id") String id) {
+    public ResponseEntity<?> deletePlayer(@PathVariable("id") Long id) {
         if (invalid(id)) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        if (playerService.deletePlayer(Long.valueOf(id))) {
+        if (playerService.deletePlayer(id)) {
             return new ResponseEntity<>(HttpStatus.OK);
         } else return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    private boolean invalidParameters(Player player) {
+        return (player.getExperience() != null && (player.getExperience() < 0 || player.getExperience() > 10000000))
+                || (player.getBirthday() != null && player.getBirthday().getTime() < 0);
+
     }
 
 }
